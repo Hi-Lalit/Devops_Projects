@@ -1,0 +1,120 @@
+- name: deploy a website of "travel india tourism"
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: website deployment tasks
+      block:
+        - name: install apache and start service
+          block:
+            - name: install apache
+              apt:
+                name: apache2
+                state: present
+                update_cache: yes
+            
+            - name: start apache service
+              service:
+                name: apache2
+                state: started
+                enabled: yes
+
+        - name: deploy website files and configuration
+          block:
+            - name: create required directory for websites
+              file:
+                path: "/var/www/Bharatyatra"
+                state: directory
+                mode: '0755'
+
+            - name: deploy website
+              copy:
+                src: index.html
+                dest: "/var/www/Bharatyatra/index.html"
+                mode: '0755'
+
+            - name: deploy wbsite error message page
+              copy:
+                src: error.html
+                dest: "/var/www/Bharatyatra/error_404.html"
+                mode: '0755'
+
+            - name: create apache config file
+              copy:
+                src: apache.conf
+                dest: "/etc/apache2/sites-available/Bharatyatra.conf"
+                mode: '0644'
+              notify: reload 
+ 
+            - name: Enable website
+              block:
+                - name: Enable website
+                  command: a2ensite Bharatyatra.conf
+                  notify: reload apache
+
+                - name: Disable default Apache site
+                  command: a2dissite 000-default.conf
+                  notify: reload apache
+      
+            - name: to map the ip address of localhost with domain names
+              block: 
+                - name: Get IP address of localhost
+                  shell: getent hosts localhost | awk '{print $1}'
+                  register: ip_address
+
+                - name: Set fact with IP
+                  set_fact:
+                    my_ip: "{{ ip_address.stdout }}"
+
+                - name: Add UIT domains to /etc/hosts without overwriting
+                  lineinfile:
+                    path: /etc/hosts
+                    line: "{{ my_ip }}   {{ item }}"
+                    state: present
+                  loop:
+                    - "Bharatyatra.com"
+                    - "www.Bharatyatra.com"
+      tags: enable_website       
+
+    - name: Disable website
+      block:
+        - name: Disable website
+          command: a2dissite Bharatyatra.conf
+          notify: reload apache
+        
+        - name: Enable default Apache site
+          command: a2ensite 000-default.conf
+          notify: reload apache
+
+        - name: delete mapping the ip address of localhost with domain names
+          block: 
+            - name: Get IP address of localhost
+              shell: getent hosts localhost | awk '{print $1}'
+              register: ip_address
+
+            - name: Set fact with IP
+              set_fact:
+                my_ip: "{{ ip_address.stdout }}"
+
+            - name: delete UIT domains to /etc/hosts
+              lineinfile:
+                path: /etc/hosts
+                line: "{{ my_ip }}   {{ item }}"
+                state: absent
+              loop:
+                - "Bharatyatra.com"
+                - "www.Bharatyatra.com"
+      tags: disable_website 
+  
+  handlers:
+    - name: reload apache
+      service:
+        name: apache2
+        state: reloaded
+
+# acceess this site on http://Bharatyatra.com:localhost
+# run this playbook using: 
+# to enable site: 
+# ansible-playbook main.yml --tags enable_website
+# to disable site: 
+# ansible-playbook main.yml --tags disable_website
