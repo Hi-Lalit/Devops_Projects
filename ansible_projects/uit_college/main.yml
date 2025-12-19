@@ -3,7 +3,7 @@
   become: yes
 
   tasks:
-    - name: This block install required web server and start the service
+    - name: This block install apache2 web server and start the service
       block:
         - name: Install Apache web server
           apt:
@@ -16,4 +16,95 @@
             name: apache2
             state: started
             enabled: yes
+      tags: install-app
+
+    - name: This block is to create directories and set permissions and deploy UIT application
+      block:
+        - name: Create directory for UIT College web application
+          file:
+            path: /var/www/html/uit_college
+            state: directory
+            owner: www-data
+            group: www-data
+            mode: '0755'
+
+        - name: Deploy UIT College web application files
+          copy:
+            src: index.html
+            dest: /var/www/html/uit_college/index.html
+            mode: '0644'
+
+        - name: Create error directory for UIT College web application
+          file:
+            path: /var/www/html/uit_college/errors
+            state: directory
+            owner: www-data
+            group: www-data
+            mode: '0755'
+
+        - name: deploy error page for UIT College
+          copy:
+            src: error_404.html
+            dest: /var/www/html/uit_college/errors/error_404.html
+            mode: '0644'
+
+        - name: disable default apache site
+          command: a2dissite 000-default.conf
+          notify: reload apache
+
+        - name: deploy apache config file for UIT College
+          copy:
+            src: uit_college.conf
+            dest: /etc/apache2/sites-available/uit_college.conf
+            mode: '0644'
+
+        - name: enable apache site for UIT College
+          command: a2ensite uit_college.conf
+          notify: reload apache
+
+        - name: find the ip and map with domain name in /etc/hosts
+          block:
+          - name: Get server IP address
+            shell: "hostname -I | awk '{print $1}'"
+            register: server_ip
             
+          - name: Add server IP to /etc/hosts with domain
+            lineinfile:
+              path: /etc/hosts
+              line: "{{ server_ip.stdout }} uit.edu.com www.uit.edu.com"
+              state: present
+      tags: install-app
+
+    - name: uninstall the uit college app
+      block:
+        - name: Disable UIT College site
+          command: a2dissite uit_college.conf
+          notify: reload apache
+
+        - name: Remove UIT College apache config file
+          file:
+            path: /etc/apache2/sites-available/uit_college.conf
+            state: absent
+
+        - name: Remove UIT College web application directory
+          file:
+            path: /var/www/html/uit_college
+            state: absent
+      tags: uninstall-app
+
+    # - name: This block is to ensure firewall allows HTTP traffic
+    #   block:
+    #     - name: Allow HTTP traffic through UFW
+    #       ufw:
+    #         rule: allow
+    #         name: 'Apache Full'
+
+  handlers:
+  - name: reload apache
+    service:
+      name: apache2
+      state: reloaded
+
+
+
+          
