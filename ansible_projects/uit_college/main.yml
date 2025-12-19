@@ -16,4 +16,17 @@
             name: apache2
             state: started
             enabled: yes
-            
+
+    - name: This bloock is to create directories and set permissions and deploy application
+      block:
+        - name: Create directory for UIT College web application
+          file:
+            path: /var/www/html/uit_college
+            state: directory
+            owner: www-data
+            group: www-data
+            mode: '0755'
+
+        - name: Deploy UIT College web application files
+          copy:
+          file:
