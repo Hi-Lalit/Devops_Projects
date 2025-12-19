@@ -1,0 +1,3 @@
+- name: This playbook is to deploy UIT College web application
+  hosts: localhost
+  become: yes
