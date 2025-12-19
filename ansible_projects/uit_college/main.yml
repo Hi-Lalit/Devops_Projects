@@ -29,4 +29,4 @@
 
         - name: Deploy UIT College web application files
           copy:
-          file:
+            
