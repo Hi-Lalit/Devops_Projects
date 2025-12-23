@@ -1,4 +1,4 @@
-- name: This playbook is to deploy UIT College web application
+- name: This playbook is to deploy Travel India web application
   hosts: localhost
   become: yes
 
@@ -18,49 +18,50 @@
             enabled: yes
       tags: install-app
 
-    - name: This block is to create directories and set permissions and deploy UIT application
+    - name: This block is to create directories and set permissions and deploy Travel India application
       block:
-        - name: Create directory for UIT College web application
+        - name: Create directory for Travel India web application
           file:
-            path: /var/www/html/uit_college
+            path: /var/www/html/travel_india
             state: directory
             owner: www-data
             group: www-data
             mode: '0755'
 
-        - name: Deploy UIT College web application files
+        - name: Deploy Travel India web application files
           copy:
             src: index.html
-            dest: /var/www/html/uit_college/index.html
+            dest: /var/www/html/travel_india/index.html
             mode: '0644'
-          notify: reload apache
 
-        - name: Create error directory for UIT College web application
+        - name: Create error directory for Travel India web application
           file:
-            path: /var/www/html/uit_college/errors
+            path: /var/www/html/travel_india/errors
             state: directory
             owner: www-data
             group: www-data
             mode: '0755'
+          notify: reload apache
 
-        - name: deploy error page for UIT College
+        - name: deploy error page for Travel India
           copy:
             src: error_404.html
-            dest: /var/www/html/uit_college/errors/error_404.html
+            dest: /var/www/html/travel_india/errors/error_404.html
             mode: '0644'
+          notify: reload apache
 
         - name: disable default apache site
           command: a2dissite 000-default.conf
           notify: reload apache
 
-        - name: deploy apache config file for UIT College
+        - name: deploy apache config file for Travel India
           copy:
             src: apache.conf
-            dest: /etc/apache2/sites-available/uit_college.conf
+            dest: /etc/apache2/sites-available/travel_india.conf
             mode: '0644'
 
-        - name: enable apache config file for UIT College
-          command: a2ensite uit_college.conf
+        - name: enable apache config file for Travel India
+          command: a2ensite travel_india.conf
           notify: reload apache
 
         - name: find the ip and map with domain name in /etc/hosts
@@ -72,25 +73,25 @@
           - name: Add server IP to /etc/hosts with domain
             lineinfile:
               path: /etc/hosts
-              line: "{{ server_ip }} uit.edu www.uit.edu"
+              line: "{{ server_ip }} travelindia.com www.travelindia.com"
               state: present
               create: no
       tags: install-app
 
-    - name: uninstall the uit college app
+    - name: uninstall the travel india app
       block:
-        - name: Disable UIT College site
-          command: a2dissite uit_college.conf
+        - name: Disable Travel India site
+          command: a2dissite travel_india.conf
           notify: reload apache
 
-        - name: Remove UIT College apache config file
+        - name: Remove Travel India apache config file
           file:
-            path: /etc/apache2/sites-available/uit_college.conf
+            path: /etc/apache2/sites-available/travel_india.conf
             state: absent
 
-        - name: Remove UIT College web application directory
+        - name: Remove Travel India web application directory
           file:
-            path: /var/www/html/uit_college
+            path: /var/www/html/travel_india
             state: absent
       tags: uninstall-app
 
@@ -107,13 +108,12 @@
       name: apache2
       state: reloaded
 
-
-
+      
 # command to run this playbook
 # To install website: 
 # ansible-playbook main.yml --tags "install-app"
 # To uninstall website:  
-# ansible-playbook main.yml --tags "uninstall-app"
+# ansible-playbook main.yml --tags "uninstall-app"          
 
 # check this website after installation:
-# http://uit.edu
+# http://travelindia.com
